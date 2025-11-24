@@ -4,12 +4,16 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-const serializeTransaction = (obj)=>{
-    const serialized = {...obj};
+const serializeAccount = (obj) => {
+  if (!obj) return obj;
+  const serialized = { ...obj };
 
-    if(obj.balance){
-        serialized.balance = obj.balance.toNumber();
-    }
+  if (obj.balance) {
+    serialized.balance =
+      typeof obj.balance === "number" ? obj.balance : obj.balance.toNumber();
+  }
+
+  return serialized;
 };
 
 export async function createAccount(data) {
@@ -55,10 +59,10 @@ export async function createAccount(data) {
       },
     });
 
-    return serializedAccount = serializeTransaction(account);
+    const serializedAccount = serializeAccount(account);
 
-    revalidatePath("/dashboard")
-    return {success: true, data: serializedAccount};
+    revalidatePath("/dashboard");
+    return { success: true, data: serializedAccount };
   } catch (error) {
     throw new Error(error.message);
   }

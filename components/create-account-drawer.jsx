@@ -54,7 +54,7 @@ const CreateAccountDrawer = ({ children }) => {
   } = useFetch(createAccount);
 
   useEffect(() => {
-    if(newAccount && !createAccountLoading){
+    if (newAccount?.success && !createAccountLoading) {
       toast.success("Account Created Successfully");
       reset();
       setOpen(false);
@@ -78,79 +78,67 @@ const CreateAccountDrawer = ({ children }) => {
       <DrawerTrigger asChild>{children}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Are you absolutely sure?</DrawerTitle>
+          <DrawerTitle>Add a new account</DrawerTitle>
         </DrawerHeader>
 
-        <div className="px-4 pb-4">
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Account Name
-              </label>
-              <Input
-                id="name"
-                placeholder="e.g., Main Checking"
-                {...register("name")}
-              />
-              {errors.name && (
-                <p className="text-sm text-red-500">{errors.name.message}</p>
-              )}
-            </div>
-          </form>
-        </div>
+        <form className="space-y-6 px-4 pb-6" onSubmit={handleSubmit(onSubmit)}>
+          <div className="space-y-2">
+            <label htmlFor="name" className="text-sm font-medium">
+              Account Name
+            </label>
+            <Input
+              id="name"
+              placeholder="e.g., Main Checking"
+              {...register("name")}
+            />
+            {errors.name && (
+              <p className="text-sm text-red-500">{errors.name.message}</p>
+            )}
+          </div>
 
-        <div className="px-4 pb-4">
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                Account Type
-              </label>
+          <div className="space-y-2">
+            <label htmlFor="type" className="text-sm font-medium">
+              Account Type
+            </label>
 
-              <Select
-                onValueChange={(value) => setValue("type", value)}
-                defaultValue={watch("type")}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Select Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CURRENT">Current</SelectItem>
-                  <SelectItem value="SAVINGS">Savings</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.type && (
-                <p className="text-sm text-red-500">{errors.type.message}</p>
-              )}
-            </div>
-          </form>
-        </div>
+            <Select
+              onValueChange={(value) => setValue("type", value)}
+              value={watch("type")}
+            >
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Select Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CURRENT">Current</SelectItem>
+                <SelectItem value="SAVINGS">Savings</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.type && (
+              <p className="text-sm text-red-500">{errors.type.message}</p>
+            )}
+          </div>
 
-        <div className="px-4 pb-4">
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="balance" className="text-sm font-medium">
-                Initial Balance
-              </label>
-              <Input
-                id="balance"
-                placeholder="0.00"
-                type="number"
-                step="0.01"
-                {...register("balance")}
-              />
-              {errors.balance && (
-                <p className="text-sm text-red-500">{errors.balance.message}</p>
-              )}
-            </div>
-          </form>
-        </div>
+          <div className="space-y-2">
+            <label htmlFor="balance" className="text-sm font-medium">
+              Initial Balance
+            </label>
+            <Input
+              id="balance"
+              placeholder="0.00"
+              type="number"
+              step="0.01"
+              {...register("balance")}
+            />
+            {errors.balance && (
+              <p className="text-sm text-red-500">{errors.balance.message}</p>
+            )}
+          </div>
 
-        <div className="px-4 pb-4">
-          <form className="space-y-4">
+          <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="space-y-0.5">
                 <label
-                  htmlFor="balance"
+                  htmlFor="isDefault"
                   className="text-sm font-medium cursor-pointer"
                 >
                   Set as Default
@@ -167,7 +155,7 @@ const CreateAccountDrawer = ({ children }) => {
               />
             </div>
 
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-4 pt-2">
               <DrawerClose asChild>
                 <Button type="button" variant="outline" className="flex-1">
                   Cancel
@@ -181,7 +169,7 @@ const CreateAccountDrawer = ({ children }) => {
               >
                 {createAccountLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-2 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating...
                   </>
                 ) : (
@@ -189,8 +177,8 @@ const CreateAccountDrawer = ({ children }) => {
                 )}
               </Button>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </DrawerContent>
     </Drawer>
   );
