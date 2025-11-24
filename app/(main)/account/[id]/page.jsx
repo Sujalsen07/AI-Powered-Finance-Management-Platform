@@ -13,3 +13,5 @@ const AccountPage = ({ params }) => {
 }
 
 export default AccountPage
+
+
