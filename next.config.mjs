@@ -10,6 +10,8 @@ const nextConfig = {
     },
   /* config options here */
   reactCompiler: true,
+  // Disable source maps in development to avoid parsing errors
+  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;
