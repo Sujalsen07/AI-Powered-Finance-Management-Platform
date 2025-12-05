@@ -1,6 +1,14 @@
+import { getAccountWithTransactions } from "@/actions/accounts";
+import { notFound } from "next/navigation";
+
 export default async function AccountsPage({ params }) {
   const resolvedParams = await params
   const accountId = resolvedParams.id
+
+  const accountData = await getAccountWithTransactions(accountId);
+  if(!accountData){
+    notFound();
+  } 
   
   return (
     <div className="py-8">
