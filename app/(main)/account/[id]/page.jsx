@@ -2,6 +2,7 @@ import { getAccountWithTransactions } from "@/actions/accounts";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import TransactionTable from "../_components/transaction-table";
+import AccountChart from "../_components/account-chart";
 import { BarLoader } from "react-spinners";
 
 export default async function AccountsPage({ params }) {
@@ -29,7 +30,8 @@ export default async function AccountsPage({ params }) {
         <p className="text-sm text-muted-foreground">{account._count.transactions} Transactions</p>
       </div>
     </div>
-      {/* Chart sections would go here */}
+      {/* Chart sections */}
+      <AccountChart transactions={transactions} />
 
 
       {/* Transactions Table */}
