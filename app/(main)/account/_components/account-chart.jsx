@@ -1,7 +1,10 @@
 "use client";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
 import { BarChart } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Day } from 'react-day-picker';
 import { Bar, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from 'recharts'
 
 const DATE_RANGES = {
@@ -33,7 +36,7 @@ const AccountChart = ({transactions = []}) => {
         ? startOfDay(subDays(now, range.days))
         : startOfDay(new Date(0));
 
-        // Filter transactions within date range
+        // Filter transactions within date range 
         const filtered = transactions.filter(
           (t) => {
             const transactionDate = new Date(t.date);
@@ -74,6 +77,16 @@ const AccountChart = ({transactions = []}) => {
         return result;
     },[transactions, dateRange]);
 
+    const totals = useMemo(()=>{
+      return filteredData.reduce((acc, day)=>({
+        income: acc.income + day.income,
+        expense:acc.expense+day.expense,
+      }),
+    {income:0, expense:0});
+  },[filteredData]);
+
+  console.log("🟢 totals:", totals);
+
     // Log data when it changes
     useEffect(() => {
         console.log("AccountChart - filteredData updated:", filteredData);
@@ -81,7 +94,21 @@ const AccountChart = ({transactions = []}) => {
     }, [filteredData, transactions]); 
 
     return (
-    <div>
+      <Card>
+      <CardHeader>
+        <CardTitle>Transaction Overview</CardTitle>
+        <Select default value={dateRange} onValueChange={setDateRange}>
+  <SelectTrigger className="w-[140px]">
+    <SelectValue placeholder="select range" />
+  </SelectTrigger>
+  <SelectContent>{Object.entries(DATE_RANGES).map(([key, {label}])=>{
+    return <SelectItem key={key} value={key}>{label}</SelectItem>
+
+  })}
+  </SelectContent>
+</Select>
+      </CardHeader>
+      <CardContent>
         {/* <BarChart
       style={{ width: '100%', maxWidth: '700px', maxHeight: '70vh', aspectRatio: 1.618 }}
       responsive
@@ -101,7 +128,11 @@ const AccountChart = ({transactions = []}) => {
       <Bar dataKey="income" fill="#82ca9d" activeBar={{ fill: 'green', stroke: 'blue' }} radius={[10, 10, 0, 0]} />
       <Bar dataKey="expense" fill="#8884d8" activeBar={{ fill: 'red', stroke: 'purple' }} radius={[10, 10, 0, 0]} />
     </BarChart> */}
-    </div>
+      </CardContent>
+      
+    </Card>
+       
+    
   )
 }
 
