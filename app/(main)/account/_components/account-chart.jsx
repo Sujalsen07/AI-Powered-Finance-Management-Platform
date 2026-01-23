@@ -2,10 +2,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
-import { BarChart } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Day } from 'react-day-picker';
-import { Bar, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 const DATE_RANGES = {
   "7D": { label: "Last 7 Days", days: 7 },
@@ -238,7 +237,7 @@ const AccountChart = ({ transactions = [] }) => {
         </Select>
       </CardHeader>
       <CardContent>
-        <div >
+        <div className='flex justify-around mb-6 text-sm'>
           <div className='text-center'>
             <p className='text-muted-foreground text-sm '>Total Income</p>
             <p className='text-lg font-bold text-green-500 '> ${(Number(totals.income) || 0).toFixed(2)}</p>
@@ -252,25 +251,50 @@ const AccountChart = ({ transactions = [] }) => {
             <p className={`text-lg font-bold ${(Number(totals.income) - Number(totals.expense)) >= 0 ? 'text-green-500' : 'text-red-500'}`}> ${((Number(totals.income) || 0) - (Number(totals.expense) || 0)).toFixed(2)}</p>
           </div>
         </div>
-        {/* <BarChart
-      style={{ width: '100%', maxWidth: '700px', maxHeight: '70vh', aspectRatio: 1.618 }}
-      responsive
-      data={filteredData}
-      margin={{
-        top: 5,
-        right: 0,
-        left: 0,
-        bottom: 5,
-      }}
-    >
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="date" />
-      <YAxis width="auto" />
-      <Tooltip />
-      <Legend />
-      <Bar dataKey="income" fill="#82ca9d" activeBar={{ fill: 'green', stroke: 'blue' }} radius={[10, 10, 0, 0]} />
-      <Bar dataKey="expense" fill="#8884d8" activeBar={{ fill: 'red', stroke: 'purple' }} radius={[10, 10, 0, 0]} />
-    </BarChart> */}
+
+        <div className='h-[300px]'>
+        <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={filteredData}
+              margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="date"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => `$${value}`}
+              />
+              <Tooltip
+                formatter={(value) => [`$${value}`, undefined]}
+                contentStyle={{
+                  backgroundColor: "hsl(var(--popover))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "var(--radius)",
+                }}
+              />
+              <Legend />
+              <Bar
+                dataKey="income"
+                name="Income"
+                fill="#22c55e"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey="expense"
+                name="Expense"
+                fill="#ef4444"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+    </div>
       </CardContent>
 
     </Card>
