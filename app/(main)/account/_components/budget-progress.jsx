@@ -96,6 +96,9 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
                         <Progress value={percentage} extraStyles={`${percentage >= 90 ? "bg-red-500" : percentage >= 75 ? "bg-yellow-500" : "bg-green-500"
                             }`}
                         />
+                        <p className='text-xs text-muted-foreground text-right'>
+                            {percentage.toFixed(1)}% used
+                             </p>
                     </div>)}
             </CardContent>
         </Card>

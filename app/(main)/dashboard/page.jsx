@@ -25,7 +25,7 @@ async function DashboardPage() {
     : null;
 
   return (
-    <div className="py-5">
+    <div className="space-y-8">
       {/* Budget progress */}
       {defaultAccount && (
         <BudgetProgress
