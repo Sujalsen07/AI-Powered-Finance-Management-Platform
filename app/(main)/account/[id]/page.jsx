@@ -1,11 +1,18 @@
 import { getAccountWithTransactions } from "@/actions/accounts";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import TransactionTable from "../_components/transaction-table";
 import AccountChart from "../_components/account-chart";
 import { BarLoader } from "react-spinners";
+import { auth } from "@clerk/nextjs/server";
 
 export default async function AccountsPage({ params }) {
+  // Check authentication before calling actions
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
   const resolvedParams = await params
   const accountId = resolvedParams.id
 

@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import useFetch from '@/hooks/use-fetch';
 import { updateBudget } from '@/actions/budget';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 const BudgetProgress = ({ initialBudget, currentExpenses }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -25,25 +26,25 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
     const handleUpdateBudget = async () => {
         const amount = parseFloat(newBudget);
 
-        if(isNaN(amount) || amount<=0){
+        if (isNaN(amount) || amount <= 0) {
             toast.error("please enter a valid amount");
             return;
         }
-         await updateBudgetFn(amount);
-     };
+        await updateBudgetFn(amount);
+    };
 
-     useEffect(()=>{
-        if(updateBudgetResult?.success){
+    useEffect(() => {
+        if (updateBudgetResult?.success) {
             setIsEditing(false);
             toast.success("Budget updated successfully");
         }
-     }, [updateBudgetResult]);
+    }, [updateBudgetResult]);
 
-     useEffect(()=>{
+    useEffect(() => {
         if (error) {
             toast.error(error.message || "failed to update the budget");
         }
-     }, [error]);
+    }, [error]);
 
     const handleCancel = async () => {
         setNewBudget(initialBudget?.amount?.toString() || "");
@@ -58,7 +59,7 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
                     <div className='flex items-center gap-2 mt-1'>
                         {isEditing ? (
                             <div className='flex items-center gap-2'>
-                                <Input type="number" value={newBudget} onChange={(e) => setNewBudget(e.target.value)} className="w-32" placeholder="Enter new budget" autoFocus disabled={isLoading}/>
+                                <Input type="number" value={newBudget} onChange={(e) => setNewBudget(e.target.value)} className="w-32" placeholder="Enter new budget" autoFocus disabled={isLoading} />
                                 <Button variant="ghost" size="icon" onClick={handleUpdateBudget} disabled={isLoading}>
                                     <Check className='h-4 w-4 text-green-500' />
                                 </Button>
@@ -90,7 +91,12 @@ const BudgetProgress = ({ initialBudget, currentExpenses }) => {
 
             </CardHeader>
             <CardContent>
-                <p>Card Content</p>
+                {initialBudget && (
+                    <div className='space-y-2'>
+                        <Progress value={percentage} extraStyles={`${percentage >= 90 ? "bg-red-500" : percentage >= 75 ? "bg-yellow-500" : "bg-green-500"
+                            }`}
+                        />
+                    </div>)}
             </CardContent>
         </Card>
     )

@@ -6,8 +6,16 @@ import { Plus } from "lucide-react";
 import React from "react";
 import AccountCard from "./_components/account-card";
 import BudgetProgress from "../account/_components/budget-progress";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 async function DashboardPage() {
+  // Check authentication before calling actions
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
   const accounts = await getUserAccounts();
 
   const defaultAccount = accounts?.find((account) => account.isDefault);
