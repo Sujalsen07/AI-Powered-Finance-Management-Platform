@@ -44,18 +44,31 @@ export const checkBudgetAlert = inngest.createFunction(
         });
 
         const totalExpenses = expenses._sum.amount?.toNumber() || 0;
-        const budgetAmount = budget.amount;
+        const budgetAmount = budget.amount.toNumber();
         const percentage = (totalExpenses / budgetAmount) * 100;
 
-        if(percentage >= 80 && (!budget.lastAlertSent || isNewMonth(budget.lastAlertSent, new Date())))
-        {
+        console.log(`Budget ${budget.id}: ${percentage}% used, lastAlertSent: ${budget.lastAlertSent}`);
+
+        // Convert lastAlertSent to Date if it exists (Prisma returns it as Date, but ensure it's a Date object)
+        const lastAlertDate = budget.lastAlertSent ? new Date(budget.lastAlertSent) : null;
+        const currentDate = new Date();
+
+        if(percentage >= 80 && (!lastAlertDate || isNewMonth(lastAlertDate, currentDate)))
+        { 
             //send email
+            console.log(`Sending alert for budget ${budget.id}: ${percentage}% used`);
 
             //update lastAlertSent
-            await db.budget.update({
-                where: {id: budget.id},
-                data: {lastAlertSent: new Date()},
-            });
+            try {
+                const updatedBudget = await db.budget.update({
+                    where: {id: budget.id},
+                    data: {lastAlertSent: currentDate},
+                });
+                console.log(`Updated lastAlertSent for budget ${budget.id}:`, updatedBudget.lastAlertSent);
+            } catch (error) {
+                console.error(`Error updating lastAlertSent for budget ${budget.id}:`, error);
+                throw error;
+            }
         }
     });
    }
@@ -64,8 +77,11 @@ export const checkBudgetAlert = inngest.createFunction(
  
 function isNewMonth(lastAlertSent, currentDate){
     if (!lastAlertSent) return true;
+    // Ensure both are Date objects
+    const lastAlert = lastAlertSent instanceof Date ? lastAlertSent : new Date(lastAlertSent);
+    const current = currentDate instanceof Date ? currentDate : new Date(currentDate);
     return (
-        lastAlertSent.getMonth() !== currentDate.getMonth() ||
-        lastAlertSent.getFullYear() !== currentDate.getFullYear()
+        lastAlert.getMonth() !== current.getMonth() ||
+        lastAlert.getFullYear() !== current.getFullYear()
     );
 }
