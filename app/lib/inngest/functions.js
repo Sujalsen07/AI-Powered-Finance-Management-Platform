@@ -21,13 +21,20 @@ export const checkBudgetAlert = inngest.createFunction(
         });
    });
 
+   console.log(`[Budget Check] Found ${budgets.length} budgets to check`);
+
    for(const budget of budgets){
     const defaultAccount = budget.user.accounts[0];
-    if (!defaultAccount) continue; //skip if no default account
+    if (!defaultAccount) {
+        console.log(`[Budget Check] Skipping budget ${budget.id}: No default account found`);
+        continue; //skip if no default account
+    }
 
     await step.run(`check-budget-${budget.id}`, async ()=> {
-        const startDate = new Date();
-        startDate.setDate(1); //start of current month
+
+        const currentDate = new Date();
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
         const expenses = await db.transaction.aggregate({
             where: {
@@ -35,7 +42,8 @@ export const checkBudgetAlert = inngest.createFunction(
                 accountId: defaultAccount.id,
                 type: "EXPENSE",
                 date:{
-                    gte: startDate,
+                    gte: startOfMonth,
+                    lte: endOfMonth,
                 },
             },
             _sum:{
@@ -45,18 +53,18 @@ export const checkBudgetAlert = inngest.createFunction(
 
         const totalExpenses = expenses._sum.amount?.toNumber() || 0;
         const budgetAmount = budget.amount.toNumber();
-        const percentage = (totalExpenses / budgetAmount) * 100;
+        const percentage = budgetAmount > 0 ? (totalExpenses / budgetAmount) * 100 : 0;
+        const formattedPercentage = percentage.toFixed(2);
 
-        console.log(`Budget ${budget.id}: ${percentage}% used, lastAlertSent: ${budget.lastAlertSent}`);
+        console.log(`[Budget Check] Budget ${budget.id}: ${formattedPercentage}% used (${totalExpenses}/${budgetAmount}), lastAlertSent: ${budget.lastAlertSent}`);
 
         // Convert lastAlertSent to Date if it exists (Prisma returns it as Date, but ensure it's a Date object)
         const lastAlertDate = budget.lastAlertSent ? new Date(budget.lastAlertSent) : null;
-        const currentDate = new Date();
 
         if(percentage >= 80 && (!lastAlertDate || isNewMonth(lastAlertDate, currentDate)))
         { 
             //send email
-            console.log(`Sending alert for budget ${budget.id}: ${percentage}% used`);
+            console.log(`Sending alert for budget ${budget.id}: ${formattedPercentage}% used`);
 
             //update lastAlertSent
             try {
