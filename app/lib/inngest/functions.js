@@ -1,5 +1,7 @@
 import { db } from "@/lib/prisma";
 import { inngest } from "./client";
+import { sendEmail } from "@/actions/send-email";
+import EmailTemplate from "@/emails/template";
 
 export const checkBudgetAlert = inngest.createFunction(
   { name: "Check Budget Alerts" },
@@ -51,8 +53,8 @@ export const checkBudgetAlert = inngest.createFunction(
             },
         });
 
-        const totalExpenses = expenses._sum.amount?.toNumber() || 0;
-        const budgetAmount = budget.amount.toNumber();
+        const totalExpenses = expenses._sum.amount ?? 0;
+        const budgetAmount = budget.amount;
         const percentage = budgetAmount > 0 ? (totalExpenses / budgetAmount) * 100 : 0;
         const formattedPercentage = percentage.toFixed(2);
 
@@ -61,10 +63,25 @@ export const checkBudgetAlert = inngest.createFunction(
         // Convert lastAlertSent to Date if it exists (Prisma returns it as Date, but ensure it's a Date object)
         const lastAlertDate = budget.lastAlertSent ? new Date(budget.lastAlertSent) : null;
 
-        if(percentage >= 80 && (!lastAlertDate || isNewMonth(lastAlertDate, currentDate)))
-        { 
+        if (percentage >= 80 && (!lastAlertDate || isNewMonth(lastAlertDate, currentDate))) { 
             //send email
             console.log(`Sending alert for budget ${budget.id}: ${formattedPercentage}% used`);
+            await sendEmail({
+                to: budget.user.email,
+                subject: `Budget Alert for ${defaultAccount.name}`,
+                react: (
+                  <EmailTemplate
+                    userName={budget.user.name}
+                    type="budget-alert"
+                    data={{
+                      percentageUsed: percentage,
+                      budgetAmount,
+                      totalExpenses,
+                      accountName: defaultAccount.name,
+                    }}
+                  />
+                ),
+            });
 
             //update lastAlertSent
             try {
