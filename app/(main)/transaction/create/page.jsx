@@ -1,16 +1,16 @@
+import { getUserAccounts } from '@/actions/dashboard';
 import React from 'react'
 
-const CreateTransaction = () => {
+const AddTransactionPage =async () => {
+  const accounts = await getUserAccounts();
+  
   return (
-    <div className="py-8">
-      <h1 className="text-3xl font-bold mb-6">Create Transaction</h1>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <p className="text-gray-600">Transaction creation form will go here.</p>
-      </div>
+    <div className="max-w-3xl mx-auto px-5">
+      <h1 className="text-5xl gradient-title mb-8">AddTransaction</h1>
     </div>
   )
 }
 
-export default CreateTransaction
+export default AddTransactionPage
 
 
