@@ -10,7 +10,7 @@ import {
 } from "./ui/drawer";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { accountSchema } from "@/app/lib/schema";
+import { accountSchema } from "@/lib/schema";
 import { Input } from "./ui/input";
 import {
   Select,
