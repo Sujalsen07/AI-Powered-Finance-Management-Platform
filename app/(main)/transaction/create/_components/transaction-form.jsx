@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import ReciptScanner from "./recipt-scanner";
 
 const AddTransactionForm = ({ accounts, categories }) => {
 
@@ -69,8 +70,13 @@ const AddTransactionForm = ({ accounts, categories }) => {
         (category) => category.type === type
     );
 
+    const handleScanComplete = (scannedData)=> {};
+
     return (
         <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit(onSubmit)}>
+
+          {/* AI Recipt scanner */}
+          <ReciptScanner onScanComplete={handleScanComplete}/>
             {/* Type */}
             <div className="space-y-2">
                 <label className="text-sm font-medium">Type</label>
