@@ -5,20 +5,17 @@ import { db } from "@/lib/prisma";
 import { request } from "@arcjet/next";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Description } from "@radix-ui/react-dialog";
-import { id } from "date-fns/locale";
 import { revalidatePath } from "next/cache";
-import { date } from "zod";
 
 const genAi = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const serializeAmount = (obj) =>({
+const serializeAmount = (obj) => ({
     ...obj,
     amount: obj.amount.toNumber(),
 });
 
 export async function createTransaction(data) {
-    
+
     try {
         const { userId } = await auth();
         if (!userId) throw new Error("Unauthorized");
@@ -32,9 +29,9 @@ export async function createTransaction(data) {
             requested: 1, //specify how many tokens to consume
         });
 
-        if(decision.isDenied()){
-            if(decision.reason.isRateLimit()){
-                const {remaining, reset} = decision.reason;
+        if (decision.isDenied()) {
+            if (decision.reason.isRateLimit()) {
+                const { remaining, reset } = decision.reason;
                 console.error({
                     code: "RATE_LIMIT_EXCEEDED",
                     details: {
@@ -50,22 +47,22 @@ export async function createTransaction(data) {
         }
 
 
-    
+
         const user = await db.user.findUnique({
-            where: {clerkUserId: userId},
+            where: { clerkUserId: userId },
         });
-        if(!user) {
+        if (!user) {
             throw new Error("user not found");
         }
 
-        const account  = await db.account.findUnique({
+        const account = await db.account.findUnique({
             where: {
                 id: data.accountId,
                 userId: user.id,
             },
         });
 
-        if(!account){
+        if (!account) {
             throw new Error("Account not found");
         }
 
@@ -74,16 +71,16 @@ export async function createTransaction(data) {
 
         const transaction = await db.$transaction(async (tx) => {
             const newTransaction = await tx.transaction.create({
-                data:{
+                data: {
                     ...data,
-                    userId:user.id,
-                    nextRecurringDate: data.isRecurring && data.recurringInterval?calculateNextRecurringDate(data.date, data.recurringInterval):null,
+                    userId: user.id,
+                    nextRecurringDate: data.isRecurring && data.recurringInterval ? calculateNextRecurringDate(data.date, data.recurringInterval) : null,
                 },
             });
 
             await tx.account.update({
-                where: {id: data.accountId},
-                data: {balance: newBalance},
+                where: { id: data.accountId },
+                data: { balance: newBalance },
             });
 
             return newTransaction;
@@ -92,44 +89,49 @@ export async function createTransaction(data) {
         revalidatePath("/dashboard");
         revalidatePath(`/account/${transaction.accountId}`);
 
-        return {success: true, data: serializeAmount(transaction)};
-    } catch (error){
+        return { success: true, data: serializeAmount(transaction) };
+    } catch (error) {
         throw new Error(error.message);
     }
 }
 
 //Helper function to calculate next recurring date
-function calculateNextRecurringDate(startDate, interval){
+function calculateNextRecurringDate(startDate, interval) {
     const date = new Date(startDate);
 
-    switch (interval){
+    switch (interval) {
         case "DAILY":
-            date.setDate(date.getDate()+1);
+            date.setDate(date.getDate() + 1);
             break;
         case "WEEKLY":
-            date.setDate(date.getDate()+7);
+            date.setDate(date.getDate() + 7);
             break;
         case "MONTHLY":
-            date.setMonth(date.getMonth()+1);
+            date.setMonth(date.getMonth() + 1);
             break;
         case "YEARLY":
-            date.setFullYear(date.getFullYear()+1);
+            date.setFullYear(date.getFullYear() + 1);
             break;
     }
 
     return date;
 }
 
- export async function scanReceipt(file) {
+export async function scanReceipt(payload) {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
 
     try {
-        const model = genAi.getGenerativeModel({model: "gemini-2.5-flash"});
+        const { imageBase64, mimeType } = payload || {};
+        if (!imageBase64 || typeof imageBase64 !== "string") {
+            throw new Error("No receipt image provided");
+        }
 
-        //convert file to array buffer
-        const arrayBuffer = await file.arrayBuffer();
+        if (!process.env.GEMINI_API_KEY) {
+            throw new Error("GEMINI_API_KEY is not configured");
+        }
 
-        //Convert ArrayBuffer to Base64
-        const base64String = Buffer.from(arrayBuffer).toString("base64");
+        const model = genAi.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
         const prompt = `Analyze this receipt image and extract the following information in JSON format:
       - Total amount (just the number)
@@ -152,24 +154,28 @@ function calculateNextRecurringDate(startDate, interval){
         const result = await model.generateContent([
             {
                 inlineData: {
-                    data: base64String,
-                    mimeType: file.type,
+                    data: imageBase64,
+                    mimeType: mimeType || "image/jpeg",
                 },
-                prompt,
             },
+            prompt,
         ]);
 
         const response = await result.response;
-        const text = response.text;
+        const text = response.text();
         const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
 
         try {
             const data = JSON.parse(cleanedText);
+            const amount = parseFloat(data?.amount);
+            if (!data || Number.isNaN(amount) || amount < 0) {
+                throw new Error("Could not extract valid receipt data from image");
+            }
             return {
-                amount: parseFloat(data.amount),
-                date: new Date(data.date),
-                Description:data.description,
-                category: data.category,
+                amount,
+                date: data.date ? new Date(data.date) : new Date(),
+                description: data.description || data.merchantName || "",
+                category: data.category || "other-expense",
                 merchantName: data.merchantName,
             };
         } catch (parseError) {
@@ -177,7 +183,20 @@ function calculateNextRecurringDate(startDate, interval){
             throw new Error("Invalid response format from Gemini");
         }
     } catch (error) {
-        console.error("Error scanning receipt",error.message);
-        throw new Error("Failed to scan receipt");
+        console.error("Error scanning receipt:", error?.message || error);
+        const isQuotaError = error?.message?.includes("429") || error?.message?.includes("quota");
+        if (isQuotaError && process.env.NODE_ENV === "development") {
+            return {
+                amount: 25.99,
+                date: new Date(),
+                description: "Sample receipt (API quota exceeded - fill in real data)",
+                category: "groceries",
+                merchantName: "Sample Store",
+            };
+        }
+        if (isQuotaError) {
+            throw new Error("Gemini API quota exceeded. Try again later or check https://ai.google.dev/");
+        }
+        throw new Error(error?.message || "Failed to scan receipt");
     }
- }
+}

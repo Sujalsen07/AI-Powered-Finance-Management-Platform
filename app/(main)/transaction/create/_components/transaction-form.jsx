@@ -12,7 +12,7 @@ import {
 import useFetch from "@/hooks/use-fetch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { transactionSchema } from "@/lib/schema";
-import React from "react";
+import React, { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import CreateAccountDrawer from "@/components/create-account-drawer";
@@ -70,7 +70,17 @@ const AddTransactionForm = ({ accounts, categories }) => {
         (category) => category.type === type
     );
 
-    const handleScanComplete = (scannedData)=> {};
+    const handleScanComplete = useCallback((scannedData) => {
+        if (!scannedData) return;
+        console.log("Receipt scanned data:", scannedData);
+        if (scannedData.amount != null) setValue("amount", String(scannedData.amount));
+        if (scannedData.date) setValue("date", scannedData.date instanceof Date ? scannedData.date : new Date(scannedData.date));
+        if (scannedData.description != null) setValue("description", scannedData.description);
+        if (scannedData.category) {
+            const categoryId = categories.some((c) => c.id === scannedData.category) ? scannedData.category : "other-expense";
+            setValue("category", categoryId);
+        }
+    }, [categories, setValue]);
 
     return (
         <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit(onSubmit)}>
