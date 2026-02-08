@@ -214,7 +214,19 @@ export const processRecurringTransactions = inngest.createFunction(
                 await tx.account.update({
                     where: { id: transaction.accountId },
                     data: { balance: { increment: balanceChange } },
-                })
+                });
+
+                //update the last processed date and next recurring date
+                await tx.transaction.update({
+                    where: {id: transaction.id},
+                    data: {
+                        lastProcessed: new Date(),
+                        nextRecurringDate: calculateNextRecurringDate(
+                            new Date(),
+                            transaction.recurringInterval
+                        ),
+                    },
+                });
             });
         });
     }
@@ -230,3 +242,22 @@ function isTransactionDue(transaction) {
     // Compare with nextDue date
     return nextDue <= today;
 }
+
+function calculateNextRecurringDate(startDate, interval) {
+    const next = new Date(startDate);
+    switch (interval) {
+      case "DAILY":
+        next.setDate(next.getDate() + 1);
+        break;
+      case "WEEKLY":
+        next.setDate(next.getDate() + 7);
+        break;
+      case "MONTHLY":
+        next.setMonth(next.getMonth() + 1);
+        break;
+      case "YEARLY":
+        next.setFullYear(next.getFullYear() + 1);
+        break;
+    }
+    return next;
+  }
