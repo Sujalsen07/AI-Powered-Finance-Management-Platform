@@ -6,15 +6,18 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getTransaction } from "@/actions/transaction";
 
-const AddTransactionPage = async ({searchParams}) => {
+const AddTransactionPage = async ({ searchParams }) => {
   const accounts = await getUserAccounts();
 
-  const editId = searchParams?.edit;
+  const editId = searchParams?.edit ?? null;
 
   let initialData = null;
-  if(editId){
-    const transaction = await getTransaction(editId);
-    initialData = transaction;
+  if (editId) {
+    try {
+      initialData = await getTransaction(editId);
+    } catch {
+      initialData = null;
+    }
   }
 
   return (
@@ -33,7 +36,7 @@ const AddTransactionPage = async ({searchParams}) => {
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-title break-words">
-          Add Transaction
+          {editId ? "Edit Transaction" : "Add Transaction"}
         </h1>
       </div>
 
@@ -44,6 +47,7 @@ const AddTransactionPage = async ({searchParams}) => {
           categories={defaultCategories}
           editMode={!!editId}
           initialData={initialData}
+          editId={editId}
         />
       </div>
     </div>

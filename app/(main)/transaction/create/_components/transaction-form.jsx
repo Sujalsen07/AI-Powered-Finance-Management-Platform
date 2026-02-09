@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useCallback } from "react";
 import { createTransaction, updateTransaction } from "@/actions/transaction";
 import {
   Select,
@@ -12,7 +13,6 @@ import {
 import useFetch from "@/hooks/use-fetch";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { transactionSchema } from "@/lib/schema";
-import React, { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import CreateAccountDrawer from "@/components/create-account-drawer";
@@ -23,21 +23,57 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import ReciptScanner from "./recipt-scanner";
 
-const AddTransactionForm = ({ accounts, categories, editMode = false, initialData = null, }) => {
-
-  const searchParams = useSearchParams();
-  const editId = searchParams.get("edit");
-
+const AddTransactionForm = ({
+  accounts,
+  categories,
+  editMode = false,
+  initialData = null,
+  editId = null,
+}) => {
   const router = useRouter();
 
-  const { register, setValue, handleSubmit, formState: { errors }, watch, getValues, reset, } = useForm({
+  const {
+    register,
+    setValue,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    getValues,
+    reset,
+  } = useForm({
     resolver: zodResolver(transactionSchema),
     defaultValues:
-      editMode && initialData ? {
+      editMode && initialData
+        ? {
+            type: initialData.type,
+            amount: initialData.amount.toString(),
+            description: initialData.description,
+            accountId: initialData.accountId,
+            category: initialData.category,
+            date: new Date(initialData.date),
+            isRecurring: initialData.isRecurring,
+            ...(initialData.recurringInterval && {
+              recurringInterval: initialData.recurringInterval,
+            }),
+          }
+        : {
+            type: "EXPENSE",
+            amount: "",
+            description: "",
+            accountId: accounts.find((ac) => ac.isDefault)?.id,
+            date: new Date(),
+            isRecurring: false,
+          },
+  });
+
+  // Keep form in sync when editing and initialData arrives/changes
+  useEffect(() => {
+    if (editMode && initialData) {
+      reset({
         type: initialData.type,
         amount: initialData.amount.toString(),
         description: initialData.description,
@@ -48,17 +84,9 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
         ...(initialData.recurringInterval && {
           recurringInterval: initialData.recurringInterval,
         }),
-
-      }
-        : {
-          type: "EXPENSE",
-          amount: "",
-          description: "",
-          accountId: accounts.find((ac) => ac.isDefault)?.id,
-          date: new Date(),
-          isRecurring: false,
-        },
-  });
+      });
+    }
+  }, [editMode, initialData, reset]);
 
   const {
     loading: transactionLoading,
@@ -75,10 +103,10 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
       amount: parseFloat(data.amount),
     };
 
-    if(editMode) {
+    if (editMode) {
       transactionFn(editId, formData);
 
-    }else{
+    } else {
       transactionFn(formData);
     };
 
@@ -110,7 +138,7 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
     <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit(onSubmit)}>
 
       {/* AI Recipt scanner */}
-      <ReciptScanner onScanComplete={handleScanComplete} />
+      {!editMode &&  <ReciptScanner onScanComplete={handleScanComplete} />}
       {/* Type */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Type</label>
@@ -288,11 +316,21 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
           Cancel
         </Button>
         <Button type="submit" className="w-full sm:flex-1 h-10 sm:h-9" disabled={transactionLoading}>
+          {transactionLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {editMode ? "Updating..." : "Creating..."}
+            </>
+          ) : editMode ? (
+            "update Transaction"
+          ) : (
+            "create Transaction"
+          )}
           Create Transaction
         </Button>
       </div>
 
-    </form>
+    </form >
   )
 }
 
