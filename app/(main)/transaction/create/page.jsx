@@ -4,9 +4,18 @@ import React from "react";
 import AddTransactionForm from "./_components/transaction-form";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { getTransaction } from "@/actions/transaction";
 
-const AddTransactionPage = async () => {
+const AddTransactionPage = async ({searchParams}) => {
   const accounts = await getUserAccounts();
+
+  const editId = searchParams?.edit;
+
+  let initialData = null;
+  if(editId){
+    const transaction = await getTransaction(editId);
+    initialData = transaction;
+  }
 
   return (
     <div className="min-h-screen w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
@@ -33,6 +42,8 @@ const AddTransactionPage = async () => {
         <AddTransactionForm
           accounts={accounts}
           categories={defaultCategories}
+          editMode={!!editId}
+          initialData={initialData}
         />
       </div>
     </div>
