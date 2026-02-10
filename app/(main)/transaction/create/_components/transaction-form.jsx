@@ -103,18 +103,24 @@ const AddTransactionForm = ({
       amount: parseFloat(data.amount),
     };
 
-    if (editMode) {
-      transactionFn(editId, formData);
+    const result = editMode
+      ? await transactionFn(editId, formData)
+      : await transactionFn(formData);
 
+    if (!result?.success) return;
+
+    const accountId = result?.data?.accountId ?? initialData?.accountId;
+    toast.success(
+      editMode ? "Transaction updated successfully" : "Transaction created successfully"
+    );
+
+    if (!editMode) reset();
+
+    if (accountId) {
+      router.push(`/account/${accountId}`);
+      router.refresh();
     } else {
-      transactionFn(formData);
-    };
-
-    const result = await transactionFn(formData);
-    if (result?.success && result?.data?.accountId) {
-      toast.success("Transaction created successfully");
-      reset();
-      router.push(`/account/${result.data.accountId}`);
+      router.refresh();
     }
   };
 
@@ -163,7 +169,7 @@ const AddTransactionForm = ({
         <div className="space-y-2">
           <label className="text-sm font-medium">Amount</label>
           <Input type="number" step="0.01" placeholder="0.00" className="w-full" {...register("amount")} />
-          {errors.type && (
+          {errors.amount && (
             <p className="text-sm text-red-500">{errors.amount.message}</p>
           )}
         </div>
@@ -193,7 +199,7 @@ const AddTransactionForm = ({
           </Select>
 
           {errors.accountId && (
-            <p className="text-sm text-red-500">{errors.type.message}</p>
+            <p className="text-sm text-red-500">{errors.accountId.message}</p>
           )}
         </div>
       </div>
@@ -322,11 +328,10 @@ const AddTransactionForm = ({
               {editMode ? "Updating..." : "Creating..."}
             </>
           ) : editMode ? (
-            "update Transaction"
+            "Update Transaction"
           ) : (
-            "create Transaction"
+            "Create Transaction"
           )}
-          Create Transaction
         </Button>
       </div>
 

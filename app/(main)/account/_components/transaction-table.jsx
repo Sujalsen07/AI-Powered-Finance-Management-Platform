@@ -400,11 +400,9 @@ const TransactionTable = ({ transactions }) => {
 
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() =>
-                            router.push(
-                              `/transaction/create?edit=${transaction.id}`
-                            )
-                          }
+                          onSelect={() => {
+                            router.push(`/transaction/create?edit=${transaction.id}`);
+                          }}
                         >
                           Edit
                         </DropdownMenuItem>
