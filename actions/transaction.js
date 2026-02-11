@@ -225,6 +225,10 @@ export async function getTransaction(id) {
 
 export async function updateTransaction(id, data) {
     try {
+        if (!id) {
+            throw new Error("Missing transaction id for update");
+        }
+
         const { userId } = await auth();
         if (!userId) throw new Error("Unauthorized");
 

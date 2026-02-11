@@ -34,8 +34,8 @@ const AddTransactionForm = ({
   initialData = null,
   editId = null,
 }) => {
-  const isEditing = !!(editMode && editId);
   const router = useRouter();
+  const isEditing = Boolean(editMode && editId);
 
   const {
     register,
@@ -47,28 +47,29 @@ const AddTransactionForm = ({
     reset,
   } = useForm({
     resolver: zodResolver(transactionSchema),
-    defaultValues: isEditing && initialData
-      ? {
-          type: initialData.type,
-          amount: initialData.amount.toString(),
-          description: initialData.description,
-          accountId: initialData.accountId,
-          category: initialData.category,
-          date: new Date(initialData.date),
-          isRecurring: initialData.isRecurring,
-          ...(initialData.recurringInterval && {
-            recurringInterval: initialData.recurringInterval,
-          }),
-        }
-      : {
-          type: "EXPENSE",
-          amount: "",
-          description: "",
-          accountId: accounts.find((ac) => ac.isDefault)?.id,
-          category: categories.find((c) => c.type === "EXPENSE")?.id,
-          date: new Date(),
-          isRecurring: false,
-        },
+    defaultValues:
+      isEditing && initialData
+        ? {
+            type: initialData.type,
+            amount: initialData.amount.toString(),
+            description: initialData.description,
+            accountId: initialData.accountId,
+            category: initialData.category,
+            date: new Date(initialData.date),
+            isRecurring: initialData.isRecurring,
+            ...(initialData.recurringInterval && {
+              recurringInterval: initialData.recurringInterval,
+            }),
+          }
+        : {
+            type: "EXPENSE",
+            amount: "",
+            description: "",
+            accountId: accounts.find((ac) => ac.isDefault)?.id,
+            category: categories.find((c) => c.type === "EXPENSE")?.id,
+            date: new Date(),
+            isRecurring: false,
+          },
   });
 
   // Keep form in sync when editing and initialData arrives/changes
@@ -106,6 +107,11 @@ const AddTransactionForm = ({
 
     if (Number.isNaN(formData.amount)) {
       toast.error("Please enter a valid amount");
+      return;
+    }
+
+    if (isEditing && !editId) {
+      toast.error("Missing transaction id for update.");
       return;
     }
 

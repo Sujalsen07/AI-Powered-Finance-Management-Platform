@@ -6,9 +6,10 @@ import Link from "next/link";
 import { getTransaction } from "@/actions/transaction";
 import AddTransactionForm from "@/app/(main)/transaction/create/_components/transaction-form";
 
-const EditTransactionPage = async ({ params }) => {
+// Note: in latest Next.js, `params` is a Promise in RSC.
+const EditTransactionPage = async (props) => {
+  const { id: editId } = await props.params;
   const accounts = await getUserAccounts();
-  const editId = params?.id;
 
   let initialData = null;
   if (editId) {
