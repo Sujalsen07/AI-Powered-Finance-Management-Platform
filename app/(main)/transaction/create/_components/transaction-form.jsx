@@ -34,6 +34,7 @@ const AddTransactionForm = ({
   initialData = null,
   editId = null,
 }) => {
+  const isEditing = !!(editMode && editId);
   const router = useRouter();
 
   const {
@@ -46,33 +47,33 @@ const AddTransactionForm = ({
     reset,
   } = useForm({
     resolver: zodResolver(transactionSchema),
-    defaultValues:
-      editMode && initialData
-        ? {
-            type: initialData.type,
-            amount: initialData.amount.toString(),
-            description: initialData.description,
-            accountId: initialData.accountId,
-            category: initialData.category,
-            date: new Date(initialData.date),
-            isRecurring: initialData.isRecurring,
-            ...(initialData.recurringInterval && {
-              recurringInterval: initialData.recurringInterval,
-            }),
-          }
-        : {
-            type: "EXPENSE",
-            amount: "",
-            description: "",
-            accountId: accounts.find((ac) => ac.isDefault)?.id,
-            date: new Date(),
-            isRecurring: false,
-          },
+    defaultValues: isEditing && initialData
+      ? {
+          type: initialData.type,
+          amount: initialData.amount.toString(),
+          description: initialData.description,
+          accountId: initialData.accountId,
+          category: initialData.category,
+          date: new Date(initialData.date),
+          isRecurring: initialData.isRecurring,
+          ...(initialData.recurringInterval && {
+            recurringInterval: initialData.recurringInterval,
+          }),
+        }
+      : {
+          type: "EXPENSE",
+          amount: "",
+          description: "",
+          accountId: accounts.find((ac) => ac.isDefault)?.id,
+          category: categories.find((c) => c.type === "EXPENSE")?.id,
+          date: new Date(),
+          isRecurring: false,
+        },
   });
 
   // Keep form in sync when editing and initialData arrives/changes
   useEffect(() => {
-    if (editMode && initialData) {
+    if (isEditing && initialData) {
       reset({
         type: initialData.type,
         amount: initialData.amount.toString(),
@@ -86,12 +87,12 @@ const AddTransactionForm = ({
         }),
       });
     }
-  }, [editMode, initialData, reset]);
+  }, [isEditing, initialData, reset]);
 
   const {
     loading: transactionLoading,
     fn: transactionFn,
-  } = useFetch(editMode ? updateTransaction : createTransaction);
+  } = useFetch(isEditing ? updateTransaction : createTransaction);
 
   const type = watch("type");
   const isRecurring = watch("isRecurring");
@@ -103,7 +104,12 @@ const AddTransactionForm = ({
       amount: parseFloat(data.amount),
     };
 
-    const result = editMode
+    if (Number.isNaN(formData.amount)) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    const result = isEditing
       ? await transactionFn(editId, formData)
       : await transactionFn(formData);
 
@@ -111,10 +117,10 @@ const AddTransactionForm = ({
 
     const accountId = result?.data?.accountId ?? initialData?.accountId;
     toast.success(
-      editMode ? "Transaction updated successfully" : "Transaction created successfully"
+      isEditing ? "Transaction updated successfully" : "Transaction created successfully"
     );
 
-    if (!editMode) reset();
+    if (!isEditing) reset();
 
     if (accountId) {
       router.push(`/account/${accountId}`);
@@ -144,7 +150,7 @@ const AddTransactionForm = ({
     <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit(onSubmit)}>
 
       {/* AI Recipt scanner */}
-      {!editMode &&  <ReciptScanner onScanComplete={handleScanComplete} />}
+      {!isEditing &&  <ReciptScanner onScanComplete={handleScanComplete} />}
       {/* Type */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Type</label>
@@ -325,9 +331,9 @@ const AddTransactionForm = ({
           {transactionLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {editMode ? "Updating..." : "Creating..."}
+              {isEditing ? "Updating..." : "Creating..."}
             </>
-          ) : editMode ? (
+          ) : isEditing ? (
             "Update Transaction"
           ) : (
             "Create Transaction"

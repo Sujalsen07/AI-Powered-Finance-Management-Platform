@@ -47,7 +47,7 @@ import {
   Trash,
   X,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import React, { use, useEffect, useState } from "react";
 import { BarLoader } from "react-spinners";
 import { toast } from "sonner";
@@ -61,7 +61,6 @@ const RECURRING_INTERVALS = {
 };
 
 const TransactionTable = ({ transactions }) => {
-  const router = useRouter();
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({
     field: "date",
@@ -399,12 +398,10 @@ const TransactionTable = ({ transactions }) => {
                       </DropdownMenuTrigger>
 
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            router.push(`/transaction/create?edit=${transaction.id}`);
-                          }}
-                        >
-                          Edit
+                        <DropdownMenuItem asChild>
+                          <Link href={`/transaction/${transaction.id}/edit`}>
+                            Edit
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive"

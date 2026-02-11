@@ -1,12 +1,23 @@
 import { getUserAccounts } from "@/actions/dashboard";
 import { defaultCategories } from "@/data/categories";
 import React from "react";
-import AddTransactionForm from "./_components/transaction-form";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { getTransaction } from "@/actions/transaction";
+import AddTransactionForm from "@/app/(main)/transaction/create/_components/transaction-form";
 
-const AddTransactionPage = async () => {
+const EditTransactionPage = async ({ params }) => {
   const accounts = await getUserAccounts();
+  const editId = params?.id;
+
+  let initialData = null;
+  if (editId) {
+    try {
+      initialData = await getTransaction(editId);
+    } catch {
+      initialData = null;
+    }
+  }
 
   return (
     <div className="min-h-screen w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
@@ -24,7 +35,7 @@ const AddTransactionPage = async () => {
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold gradient-title break-words">
-          Add Transaction
+          Edit Transaction
         </h1>
       </div>
 
@@ -33,13 +44,14 @@ const AddTransactionPage = async () => {
         <AddTransactionForm
           accounts={accounts}
           categories={defaultCategories}
-          editMode={false}
-          initialData={null}
-          editId={null}
+          editMode={true}
+          initialData={initialData}
+          editId={editId}
         />
       </div>
     </div>
   );
 };
 
-export default AddTransactionPage;
+export default EditTransactionPage;
+
