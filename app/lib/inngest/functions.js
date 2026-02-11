@@ -218,7 +218,7 @@ export const processRecurringTransactions = inngest.createFunction(
 
                 //update the last processed date and next recurring date
                 await tx.transaction.update({
-                    where: {id: transaction.id},
+                    where: { id: transaction.id },
                     data: {
                         lastProcessed: new Date(),
                         nextRecurringDate: calculateNextRecurringDate(
@@ -246,18 +246,38 @@ function isTransactionDue(transaction) {
 function calculateNextRecurringDate(startDate, interval) {
     const next = new Date(startDate);
     switch (interval) {
-      case "DAILY":
-        next.setDate(next.getDate() + 1);
-        break;
-      case "WEEKLY":
-        next.setDate(next.getDate() + 7);
-        break;
-      case "MONTHLY":
-        next.setMonth(next.getMonth() + 1);
-        break;
-      case "YEARLY":
-        next.setFullYear(next.getFullYear() + 1);
-        break;
+        case "DAILY":
+            next.setDate(next.getDate() + 1);
+            break;
+        case "WEEKLY":
+            next.setDate(next.getDate() + 7);
+            break;
+        case "MONTHLY":
+            next.setMonth(next.getMonth() + 1);
+            break;
+        case "YEARLY":
+            next.setFullYear(next.getFullYear() + 1);
+            break;
     }
     return next;
-  }
+}
+
+export const generateMonthlyReports = inngest.createFunction({
+    id: "generate-monthly-reports",
+    name: "Generate Monthly Reports"
+},
+    { cron: "0 0 1 * *" }, async ({step}) => {
+        const users = await step.run("fetch-users", async () => {
+            return await db.user.findMany({
+                include: {
+                    accounts: true,
+                },
+            });
+        });
+        return await db.user.findMany({
+            include: {
+                accounts: true,
+            },
+        });
+    }
+);
