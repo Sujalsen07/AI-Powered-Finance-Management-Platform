@@ -266,7 +266,7 @@ export const generateMonthlyReports = inngest.createFunction({
     id: "generate-monthly-reports",
     name: "Generate Monthly Reports"
 },
-    { cron: "0 0 1 * *" }, async ({step}) => {
+    { cron: "0 0 1 * *" }, async ({ step }) => {
         const users = await step.run("fetch-users", async () => {
             return await db.user.findMany({
                 include: {
@@ -274,10 +274,47 @@ export const generateMonthlyReports = inngest.createFunction({
                 },
             });
         });
-        return await db.user.findMany({
-            include: {
-                accounts: true,
-            },
-        });
+        for (const user of users) {
+            await step.run(`generate-monthly-report-${user.id}`, async () => {
+                const lastMonth = new Date();
+                lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+                const stats = await getMonthlyStats(user.id, lastMonth);
+                const monthName = lastMonth.toLocaleString('default', { month: 'long' });
+            });
+        }
     }
 );
+
+const getMonthlyStats = async (userId, month) => {
+    const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
+    const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+
+    const transactions = await db.transaction.findMany({
+        where: {
+            userId,
+            date: {
+                gte: startDate,
+                lte: endDate,
+            },
+        },
+    });
+
+    return transactions.reduce((stats, t)=>{
+        const amount = t.amount.toNumber();
+        if(t.type === "EXPENSE"){
+            stats.totalExpenses += amount;
+            stats.byCategory[t.category] = (stats.byCategory[t.category] || 0) + amount;
+        }else{
+            stats.totalInome +=amount;
+        }
+        return stats;
+    },
+{
+    totalExpenses: 0,
+    totalIncome: 0,
+    byCategory: {},
+    transactionCount: transactions.length,
+}
+);
+};
