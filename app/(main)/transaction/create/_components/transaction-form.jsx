@@ -35,7 +35,6 @@ const AddTransactionForm = ({
   editId = null,
 }) => {
   const router = useRouter();
-  const isEditing = Boolean(editMode && editId);
 
   const {
     register,
@@ -48,7 +47,7 @@ const AddTransactionForm = ({
   } = useForm({
     resolver: zodResolver(transactionSchema),
     defaultValues:
-      isEditing && initialData
+      editMode && initialData
         ? {
             type: initialData.type,
             amount: initialData.amount.toString(),
@@ -74,7 +73,7 @@ const AddTransactionForm = ({
 
   // Keep form in sync when editing and initialData arrives/changes
   useEffect(() => {
-    if (isEditing && initialData) {
+    if (editMode && initialData) {
       reset({
         type: initialData.type,
         amount: initialData.amount.toString(),
@@ -88,12 +87,12 @@ const AddTransactionForm = ({
         }),
       });
     }
-  }, [isEditing, initialData, reset]);
+  }, [editMode, initialData, reset]);
 
   const {
     loading: transactionLoading,
     fn: transactionFn,
-  } = useFetch(isEditing ? updateTransaction : createTransaction);
+  } = useFetch(editMode ? updateTransaction : createTransaction);
 
   const type = watch("type");
   const isRecurring = watch("isRecurring");
@@ -110,12 +109,12 @@ const AddTransactionForm = ({
       return;
     }
 
-    if (isEditing && !editId) {
+    if (editMode && !editId) {
       toast.error("Missing transaction id for update.");
       return;
     }
 
-    const result = isEditing
+    const result = editMode
       ? await transactionFn(editId, formData)
       : await transactionFn(formData);
 
@@ -123,10 +122,10 @@ const AddTransactionForm = ({
 
     const accountId = result?.data?.accountId ?? initialData?.accountId;
     toast.success(
-      isEditing ? "Transaction updated successfully" : "Transaction created successfully"
+      editMode ? "Transaction updated successfully" : "Transaction created successfully"
     );
 
-    if (!isEditing) reset();
+    if (!editMode) reset();
 
     if (accountId) {
       router.push(`/account/${accountId}`);
@@ -156,7 +155,7 @@ const AddTransactionForm = ({
     <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit(onSubmit)}>
 
       {/* AI Recipt scanner */}
-      {!isEditing &&  <ReciptScanner onScanComplete={handleScanComplete} />}
+      {!editMode &&  <ReciptScanner onScanComplete={handleScanComplete} />}
       {/* Type */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Type</label>
@@ -337,9 +336,9 @@ const AddTransactionForm = ({
           {transactionLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {isEditing ? "Updating..." : "Creating..."}
+              {editMode ? "Updating..." : "Creating..."}
             </>
-          ) : isEditing ? (
+          ) : editMode ? (
             "Update Transaction"
           ) : (
             "Create Transaction"

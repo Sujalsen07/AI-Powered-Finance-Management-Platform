@@ -2,8 +2,7 @@ import { db } from "@/lib/prisma";
 import { inngest } from "./client";
 import { sendEmail } from "@/actions/send-email";
 import EmailTemplate from "@/emails/template";
-import { id, is } from "date-fns/locale";
-import { date } from "zod";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const checkBudgetAlert = inngest.createFunction(
     { name: "Check Budget Alerts" },
@@ -66,7 +65,7 @@ export const checkBudgetAlert = inngest.createFunction(
                 const lastAlertDate = budget.lastAlertSent ? new Date(budget.lastAlertSent) : null;
 
                 if (percentage >= 80 && (!lastAlertDate || isNewMonth(lastAlertDate, currentDate))) {
-                    //send email
+                   //send email
                     console.log(`Sending alert for budget ${budget.id}: ${formattedPercentage}% used`);
                     await sendEmail({
                         to: budget.user.email,
@@ -262,11 +261,13 @@ function calculateNextRecurringDate(startDate, interval) {
     return next;
 }
 
-export const generateMonthlyReports = inngest.createFunction({
-    id: "generate-monthly-reports",
-    name: "Generate Monthly Reports"
-},
-    { cron: "0 0 1 * *" }, async ({ step }) => {
+export const generateMonthlyReports = inngest.createFunction(
+    {
+        id: "generate-monthly-reports",
+        name: "Generate Monthly Reports",
+    },
+    { cron: "0 0 1 * *" },
+    async ({ step }) => {
         const users = await step.run("fetch-users", async () => {
             return await db.user.findMany({
                 include: {
@@ -274,47 +275,116 @@ export const generateMonthlyReports = inngest.createFunction({
                 },
             });
         });
+
         for (const user of users) {
             await step.run(`generate-monthly-report-${user.id}`, async () => {
                 const lastMonth = new Date();
                 lastMonth.setMonth(lastMonth.getMonth() - 1);
 
                 const stats = await getMonthlyStats(user.id, lastMonth);
-                const monthName = lastMonth.toLocaleString('default', { month: 'long' });
+                const monthName = lastMonth.toLocaleString("default", { month: "long" });
+
+                const insights = await generateFinancialInsights(stats, monthName);
+
+                if (!user.email) {
+                    console.warn(`User ${user.id} has no email. Skipping monthly report.`);
+                    return;
+                }
+
+                await sendEmail({
+                    to: user.email,
+                    subject: `Your ${monthName} finance summary`,
+                    react: (
+                        <EmailTemplate
+                            userName={user.name || "there"}
+                            type="monthly-report"
+                            data={{
+                                month: monthName,
+                                ...stats,
+                                insights,
+                            }}
+                        />
+                    ),
+                });
             });
         }
+
+        return { usersProcessed: users.length };
     }
 );
 
-const getMonthlyStats = async (userId, month) => {
-    const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
-    const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+async function generateFinancialInsights(stats, month) {
+    const genAi = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAi.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
-    const transactions = await db.transaction.findMany({
-        where: {
-            userId,
-            date: {
-                gte: startDate,
-                lte: endDate,
-            },
-        },
-    });
+    const prompt = `
+    Analyze this financial data and provide 3 concise, actionable insights.
+    Focus on spending patterns and practical advice.
+    Keep it friendly and conversational.
 
-    return transactions.reduce((stats, t)=>{
-        const amount = t.amount.toNumber();
-        if(t.type === "EXPENSE"){
-            stats.totalExpenses += amount;
-            stats.byCategory[t.category] = (stats.byCategory[t.category] || 0) + amount;
-        }else{
-            stats.totalInome +=amount;
-        }
-        return stats;
-    },
-{
-    totalExpenses: 0,
-    totalIncome: 0,
-    byCategory: {},
-    transactionCount: transactions.length,
+    Financial Data for ${month}:
+    - Total Income: $${stats.totalIncome}
+    - Total Expenses: $${stats.totalExpenses}
+    - Net Income: $${stats.totalIncome - stats.totalExpenses}
+    - Expense Categories: ${Object.entries(stats.byCategory)
+      .map(([category, amount]) => `${category}: $${amount}`)
+      .join(", ")}
+
+    Format the response as a JSON array of strings, like this:
+    ["insight 1", "insight 2", "insight 3"]
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.error("Error generating insights:", error);
+    return [
+      "Your highest expense category this month might need attention.",
+      "Consider setting up a budget for better financial management.",
+      "Track your recurring expenses to identify potential savings.",
+    ];
+  }
 }
-);
+
+const getMonthlyStats = async (userId, month) => {
+  const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
+  const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+
+  const transactions = await db.transaction.findMany({
+    where: {
+      userId,
+      date: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+  });
+
+  return transactions.reduce(
+    (stats, t) => {
+      const amount = t.amount.toNumber();
+      stats.transactionCount += 1;
+
+      if (t.type === "EXPENSE") {
+        stats.totalExpenses += amount;
+        stats.byCategory[t.category] =
+          (stats.byCategory[t.category] || 0) + amount;
+      } else {
+        stats.totalIncome += amount;
+      }
+
+      return stats;
+    },
+    {
+      totalExpenses: 0,
+      totalIncome: 0,
+      byCategory: {},
+      transactionCount: 0,
+    }
+  );
 };
