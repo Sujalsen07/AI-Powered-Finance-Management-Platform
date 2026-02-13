@@ -5,10 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import React, { Suspense } from "react";
 import AccountCard from "./_components/account-card";
+import DashboardOverview from "./_components/transaction-overview";
 import BudgetProgress from "../account/_components/budget-progress";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import DashboardOverview from "./_components/transaction-overview";
 
 async function DashboardPage() {
   // Check authentication before calling actions
