@@ -8,6 +8,7 @@ import AccountCard from "./_components/account-card";
 import BudgetProgress from "../account/_components/budget-progress";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import DashboardOverview from "./_components/transaction-overview";
 
 async function DashboardPage() {
   // Check authentication before calling actions
